@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f4f1e9">
+<title>再読文字マスタークイズ</title>
+<style>
+:root{
+  color-scheme:light;
+  --paper:#f4f1e9;--card:#fffdf8;--ink:#252923;--muted:#70766d;
+  --line:#deded2;--green:#526b59;--green-dark:#3d5545;
+  --red:#a34f45;--shadow:0 14px 40px rgba(42,48,39,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  line-height:1.7}
+main{width:min(760px,calc(100% - 32px));margin:0 auto;padding:42px 0 64px}
+header{text-align:center;margin-bottom:28px}
+.eyebrow{font-size:.76rem;letter-spacing:.18em;color:var(--green);font-weight:700}
+h1{font-family:"Yu Mincho","Hiragino Mincho ProN",serif;font-size:clamp(1.65rem,5vw,2.35rem);font-weight:600;letter-spacing:.08em;margin:8px 0}
+.subtitle{margin:0;color:var(--muted);font-size:.92rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:clamp(22px,5vw,40px);box-shadow:var(--shadow)}
+.progress-wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.progress-label{font-weight:700;font-size:1.02rem}
+.progress-count{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.9rem}
+.track{height:7px;background:#e9e9df;border-radius:99px;overflow:hidden;margin-bottom:30px}
+.fill{height:100%;width:0;background:var(--green);border-radius:99px;transition:width .25s}
+h2{font-size:1.15rem;margin:0 0 8px}
+.instruction{font-size:.9rem;color:var(--muted);margin:0 0 25px}
+.field{margin:20px 0}
+label{display:block;font-weight:700;font-size:.93rem;margin-bottom:8px}
+input{width:100%;height:54px;border:1px solid #cfd2c7;border-radius:11px;background:#fff;
+  padding:0 15px;font:inherit;font-size:1.05rem;color:var(--ink);outline:none;transition:border .15s,box-shadow .15s}
+input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(82,107,89,.13)}
+input::placeholder{color:#a5aaa0}
+.note{font-size:.8rem;color:var(--muted);margin:6px 1px 0}
+.actions{display:flex;gap:12px;margin-top:28px}
+button{border:0;border-radius:11px;min-height:52px;padding:0 22px;font:inherit;font-weight:700;cursor:pointer;transition:transform .12s,background .12s}
+button:active{transform:translateY(1px)}
+.primary{background:var(--green);color:white;flex:1}
+.primary:hover{background:var(--green-dark)}
+.secondary{background:#eceee7;color:var(--ink)}
+button:focus-visible{outline:3px solid #91a996;outline-offset:3px}
+.error{color:var(--red);font-size:.88rem;font-weight:600;min-height:1.4em;margin:10px 0 0}
+.result-head{text-align:center;margin-bottom:26px}
+.score{font-family:"Yu Mincho","Hiragino Mincho ProN",serif;font-size:2.7rem;color:var(--green);font-weight:700;line-height:1.3;margin:10px 0 2px}
+.score-caption{color:var(--muted);font-size:.9rem}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:650px;font-size:.88rem}
+th,td{padding:12px 13px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:#f0f1e9;font-weight:700;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.char{font-size:1.35rem;font-weight:700;text-align:center}
+.status{font-weight:700;white-space:nowrap}
+.ok{color:var(--green-dark)}.ng{color:var(--red)}
+.answers{white-space:pre-line}
+.result-actions{margin-top:24px;display:flex;justify-content:center}
+.result-actions button{width:min(100%,320px)}
+.hidden{display:none!important}
+footer{text-align:center;color:#92978d;font-size:.76rem;margin-top:22px}
+@media(max-width:520px){
+ main{padding-top:28px}.panel{border-radius:16px}
+ .actions{flex-direction:column-reverse}
+ .actions button{width:100%}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">KANBUN · STUDY</div>
+    <h1>再読文字マスタークイズ</h1>
+    <p class="subtitle">11字を、読み方まで正確に覚えよう。</p>
+  </header>
+
+  <section id="quiz" class="panel" aria-live="polite">
+    <div class="progress-wrap">
+      <div id="questionNumber" class="progress-label">第1問 / 全11問</div>
+      <div id="progressCount" class="progress-count">0 / 11 回答済み</div>
+    </div>
+    <div class="track"><div id="progressFill" class="fill"></div></div>
+    <h2>次の3つを入力してください</h2>
+    <p class="instruction">漢字1字と、1回目・2回目の読みを入力してください。読みは送り仮名も含め、すべてひらがなで入力します。</p>
+
+    <form id="answerForm" autocomplete="off">
+      <div class="field">
+        <label for="kanji">漢字（1字）</label>
+        <input id="kanji" name="kanji" type="text" maxlength="3" placeholder="漢字を入力" required>
+      </div>
+      <div class="field">
+        <label for="reading1">1回目の読み</label>
+        <input id="reading1" name="reading1" type="text" placeholder="ひらがなで入力" required>
+      </div>
+      <div class="field">
+        <label for="reading2">2回目の読み</label>
+        <input id="reading2" name="reading2" type="text" placeholder="ひらがなで入力" required>
+        <p class="note">例：送り仮名も省略せずに入力してください。</p>
+      </div>
+      <p id="errorMessage" class="error" role="alert"></p>
+      <div class="actions">
+        <button class="primary" type="submit">回答する</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="results" class="panel hidden">
+    <div class="result-head">
+      <div class="eyebrow">YOUR RESULT</div>
+      <h2>クイズ結果</h2>
+      <div id="score" class="score">0 / 11</div>
+      <div class="score-caption">正解数</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>漢字</th><th>判定</th><th>あなたの回答</th><th>模範解答</th>
+        </tr></thead>
+        <tbody id="resultRows"></tbody>
+      </table>
+    </div>
+    <div class="result-actions">
+      <button id="restartButton" class="primary" type="button">もう一度挑戦する</button>
+    </div>
+  </section>
+  <footer>再読文字 · 全11字</footer>
+</main>
+
+<script>
+"use strict";
+
+/*
+ * 読みの正解データ
+ * 「由」は「猶」と同じ型、「蓋」は「盍」と同じ型として扱います。
+ * 表記の違いに対応するため、許容する読みを配列で管理しています。
+ */
+const quizData = [
+  { kanji:"未",  first:["いまだ"],                 second:["ず"] },
+  { kanji:"将",  first:["まさに"],                 second:["す"] },
+  { kanji:"且",  first:["まさに"],                 second:["す"] },
+  { kanji:"当",  first:["まさに"],                 second:["べし"] },
+  { kanji:"応",  first:["まさに"],                 second:["べし"] },
+  { kanji:"宜",  first:["よろしく"],               second:["べし"] },
+  { kanji:"須",  first:["すべからく"],             second:["べし"] },
+  { kanji:"猶",  first:["なほ","なお"],             second:["ごとし","のごとし","がごとし"] },
+  { kanji:"由",  first:["なほ","なお"],             second:["ごとし","のごとし","がごとし"] },
+  { kanji:"盍",  first:["なんぞ"],                 second:["ざる"] },
+  { kanji:"蓋",  first:["なんぞ"],                 second:["ざる"] }
+];
+
+let currentQuestion = 0;
+let answers = [];
+let usedKanji = new Set();
+
+const quizSection = document.getElementById("quiz");
+const resultsSection = document.getElementById("results");
+const form = document.getElementById("answerForm");
+const kanjiInput = document.getElementById("kanji");
+const reading1Input = document.getElementById("reading1");
+const reading2Input = document.getElementById("reading2");
+const errorMessage = document.getElementById("errorMessage");
+
+function normalize(value) {
+  return value
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+
+function accepted(input, patterns) {
+  const value = normalize(input);
+  return patterns.some(pattern => normalize(pattern) === value);
+}
+
+function updateProgress() {
+  document.getElementById("questionNumber").textContent =
+    `第${currentQuestion + 1}問 / 全11問`;
+  document.getElementById("progressCount").textContent =
+    `${answers.length} / 11 回答済み`;
+  document.getElementById("progressFill").style.width =
+    `${(answers.length / 11) * 100}%`;
+}
+
+function clearInputs() {
+  form.reset();
+  errorMessage.textContent = "";
+  kanjiInput.focus();
+}
+
+form.addEventListener("submit", event => {
+  event.preventDefault();
+  errorMessage.textContent = "";
+
+  const kanji = normalize(kanjiInput.value);
+  const reading1 = normalize(reading1Input.value);
+  const reading2 = normalize(reading2Input.value);
+
+  if (!kanji || !reading1 || !reading2) {
+    errorMessage.textContent = "3つすべて入力してください。";
+    return;
+  }
+
+  if ([...kanji].length !== 1) {
+    errorMessage.textContent = "漢字は1字だけ入力してください。";
+    kanjiInput.focus();
+    return;
+  }
+
+  const target = quizData.find(item => item.kanji === kanji);
+  if (!target) {
+    errorMessage.textContent = "対象の11字から漢字を入力してください。";
+    kanjiInput.focus();
+    return;
+  }
+
+  if (usedKanji.has(kanji)) {
+    alert("すでに回答済みの漢字です！別の漢字を入力してください。");
+    kanjiInput.focus();
+    kanjiInput.select();
+    return;
+  }
+
+  const firstCorrect = accepted(reading1, target.first);
+  const secondCorrect = accepted(reading2, target.second);
+  const correct = firstCorrect && secondCorrect;
+
+  answers.push({
+    kanji,
+    reading1,
+    reading2,
+    correct,
+    firstCorrect,
+    secondCorrect,
+    target
+  });
+  usedKanji.add(kanji);
+  currentQuestion++;
+
+  if (currentQuestion >= 11) {
+    showResults();
+  } else {
+    updateProgress();
+    clearInputs();
+  }
+});
+
+function showResults() {
+  quizSection.classList.add("hidden");
+  resultsSection.classList.remove("hidden");
+
+  const score = answers.filter(answer => answer.correct).length;
+  document.getElementById("score").textContent = `${score} / 11`;
+
+  const rows = answers.map(answer => {
+    const status = answer.correct
+      ? '<span class="status ok">正解</span>'
+      : '<span class="status ng">不正解</span>';
+    const yours = `1回目：${escapeHtml(answer.reading1)}<br>2回目：${escapeHtml(answer.reading2)}`;
+    const model = `1回目：${answer.target.first[0]}<br>2回目：${answer.target.second[0]}`;
+    return `<tr>
+      <td class="char">${escapeHtml(answer.kanji)}</td>
+      <td>${status}</td>
+      <td class="answers">${yours}</td>
+      <td class="answers">${model}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("resultRows").innerHTML = rows;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  })[ch]);
+}
+
+document.getElementById("restartButton").addEventListener("click", () => {
+  currentQuestion = 0;
+  answers = [];
+  usedKanji = new Set();
+  resultsSection.classList.add("hidden");
+  quizSection.classList.remove("hidden");
+  updateProgress();
+  clearInputs();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+updateProgress();
+</script>
+</body>
+</html>
